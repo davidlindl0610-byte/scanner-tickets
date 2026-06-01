@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Scanner CDR">
+<title>Scanner Tickets - SAS CDR</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; min-height: 100vh; }
+.header { background: #1a1a2e; padding: 14px; text-align: center; }
+.header h1 { font-size: 17px; color: #e94560; }
+.header p { font-size: 11px; color: #aaa; margin-top: 2px; }
+.container { padding: 12px; max-width: 480px; margin: 0 auto; }
+.btn { display: block; width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-bottom: 10px; -webkit-appearance: none; }
+.btn-primary { background: #e94560; color: white; }
+.btn-secondary { background: white; color: #e94560; border: 2px solid #e94560; }
+.btn-success { background: #0f3460; color: #4ecca3; }
+.btn:active { opacity: 0.8; transform: scale(0.98); }
+.preview-area { width: 100%; max-height: 300px; background: #eee; border-radius: 10px; overflow: hidden; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; min-height: 100px; }
+.preview-area img { width: 100%; max-height: 300px; object-fit: contain; }
+.preview-area .placeholder { color: #999; font-size: 14px; padding: 30px; text-align: center; }
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; font-size: 13px; color: #0f3460; margin-bottom: 4px; font-weight: 600; }
+.form-group input, .form-group select { width: 100%; padding: 11px; border: 1.5px solid #ddd; border-radius: 8px; background: white; color: #333; font-size: 16px; -webkit-appearance: none; }
+.form-group input:focus, .form-group select:focus { border-color: #e94560; outline: none; }
+.status { text-align: center; padding: 10px; border-radius: 8px; margin-bottom: 12px; font-size: 13px; }
+.status.loading { background: #fff3cd; color: #856404; }
+.status.done { background: #d4edda; color: #155724; }
+.status.error { background: #f8d7da; color: #721c24; }
+.ocr-raw { background: #f0f0f0; border-radius: 8px; padding: 10px; margin-bottom: 12px; font-size: 11px; color: #666; max-height: 120px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; word-break: break-all; }
+.ocr-raw summary { font-size: 13px; color: #0f3460; cursor: pointer; font-family: -apple-system, sans-serif; }
+.ticket-card { background: white; border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; border-left: 3px solid #4ecca3; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
+.ticket-card .info .merchant { font-weight: 600; font-size: 14px; }
+.ticket-card .info .details { font-size: 12px; color: #888; margin-top: 2px; }
+.ticket-card .amount { color: #e94560; font-weight: 700; font-size: 17px; white-space: nowrap; margin-left: 10px; }
+.hidden { display: none !important; }
+.success-screen { text-align: center; padding: 24px 0; }
+.success-screen .check { font-size: 48px; color: #4ecca3; }
+.success-screen h2 { color: #155724; margin-top: 8px; font-size: 17px; }
+.success-screen p { color: #888; margin-top: 6px; font-size: 12px; }
+.counter { text-align: center; font-size: 32px; font-weight: 700; color: #e94560; margin: 8px 0; }
+.counter span { font-size: 13px; color: #888; display: block; }
+.file-wrap { position: relative; overflow: hidden; }
+.file-wrap input[type=file] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.total-bar { background: white; padding: 8px; border-radius: 8px; text-align: center; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.total-bar .label { font-size: 11px; color: #888; }
+.total-bar .value { font-size: 20px; font-weight: 700; color: #0f3460; }
+canvas.processing { display: none; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Scanner Tickets - SAS CDR</h1>
+  <p>Prends en photo, OCR automatique</p>
+</div>
+<div class="container">
+
+  <!-- STEP 1 -->
+  <div id="step1">
+    <div class="preview-area" id="previewArea">
+      <div class="placeholder" id="ph">Prends en photo ton ticket</div>
+      <img id="preview" class="hidden" />
+    </div>
+    <div class="file-wrap">
+      <button class="btn btn-primary">Prendre en photo</button>
+      <input type="file" accept="image/*" capture="environment" onchange="onCapture(event)">
+    </div>
+    <div class="file-wrap">
+      <button class="btn btn-secondary">Galerie</button>
+      <input type="file" accept="image/*" onchange="onCapture(event)">
+    </div>
+    <button class="btn btn-success hidden" id="nextBtn" onclick="goStep2()">Analyser le ticket</button>
+  </div>
+
+  <!-- STEP 2 -->
+  <div id="step2" class="hidden">
+    <div id="ocrStatus" class="status loading">Lecture en cours...</div>
+    <details class="ocr-raw hidden" id="ocrRawBlock">
+      <summary>Texte brut OCR (debug)</summary>
+      <div id="ocrRawText"></div>
+    </details>
+    <div class="form-group">
+      <label>Commercant</label>
+      <input type="text" id="merchant" placeholder="ex: Monoprix, Total, Uber Eats...">
+    </div>
+    <div class="form-group">
+      <label>Montant TTC</label>
+      <input type="number" id="amount" step="0.01" placeholder="ex: 25.50" inputmode="decimal">
+    </div>
+    <div class="form-group">
+      <label>Date du ticket</label>
+      <input type="date" id="ticketDate">
+    </div>
+    <div class="form-group">
+      <label>Categorie</label>
+      <select id="category">
+        <option value="restaurant">Restaurant / Repas</option>
+        <option value="essence">Essence / Garage / Parking</option>
+        <option value="supermarche">Supermarche / Courses</option>
+        <option value="transport">Transport (Navigo, Uber, RATP)</option>
+        <option value="contravention">Contravention / Amende</option>
+        <option value="scooter">Scooter MP3 530</option>
+        <option value="fourniture">Fourniture / Equipement</option>
+        <option value="autre">Autre</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Note (optionnel)</label>
+      <input type="text" id="note" placeholder="ex: diner client...">
+    </div>
+    <button class="btn btn-primary" onclick="saveTicket()">Enregistrer</button>
+    <button class="btn btn-secondary" onclick="goStep1()">Retour</button>
+  </div>
+
+  <!-- STEP 3 -->
+  <div id="step3" class="hidden">
+    <div class="success-screen">
+      <div class="check">&#10003;</div>
+      <h2>Enregistre !</h2>
+      <p id="savedInfo"></p>
+    </div>
+    <button class="btn btn-primary" onclick="scanMore()">Scanner un autre</button>
+    <button class="btn btn-success" onclick="exportAll()">Telecharger tout</button>
+  </div>
+
+  <!-- History -->
+  <div class="history">
+    <h3 style="color:#0f3460;font-size:15px;margin-bottom:6px;">Tickets scannes</h3>
+    <div class="counter" id="counter">0<span>tickets</span></div>
+    <div class="total-bar hidden" id="totalBar">
+      <div class="label">Total</div>
+      <div class="value" id="totalValue">0.00 EUR</div>
+    </div>
+    <div id="historyList"></div>
+    <button class="btn btn-success hidden" id="exportAllBtn" onclick="exportAll()">Telecharger tout</button>
+  </div>
+</div>
+
+<canvas id="processCanvas" class="processing"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js"></script>
+<script>
+let currentImage = null;
+let currentImageRaw = null;
+let tickets = [];
+try { tickets = JSON.parse(localStorage.getItem('sas_cdr_tickets2') || '[]'); } catch(e) {}
+updateUI();
+
+function onCapture(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const img = new Image();
+    img.onload = function() {
+      // Resize for display
+      const c = document.getElementById('processCanvas');
+      const maxW = 1400;
+      const scale = Math.min(1, maxW / img.width);
+      c.width = img.width * scale;
+      c.height = img.height * scale;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      currentImageRaw = c.toDataURL('image/jpeg', 0.85);
+
+      // PREPROCESSING: high contrast grayscale for OCR
+      const imgData = ctx.getImageData(0, 0, c.width, c.height);
+      const d = imgData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        // Grayscale
+        let gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+        // Increase contrast
+        gray = ((gray - 128) * 1.8) + 128;
+        gray = Math.max(0, Math.min(255, gray));
+        // Threshold for cleaner text
+        if (gray < 140) gray = 0;
+        else if (gray > 180) gray = 255;
+        d[i] = d[i+1] = d[i+2] = gray;
+      }
+      ctx.putImageData(imgData, 0, 0);
+      currentImage = c.toDataURL('image/png');
+
+      document.getElementById('preview').src = currentImageRaw;
+      document.getElementById('preview').classList.remove('hidden');
+      document.getElementById('ph').classList.add('hidden');
+      document.getElementById('nextBtn').classList.remove('hidden');
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function goStep1() {
+  document.getElementById('step1').classList.remove('hidden');
+  document.getElementById('step2').classList.add('hidden');
+  document.getElementById('step3').classList.add('hidden');
+}
+
+async function goStep2() {
+  document.getElementById('step1').classList.add('hidden');
+  document.getElementById('step2').classList.remove('hidden');
+  document.getElementById('ticketDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('ocrRawBlock').classList.add('hidden');
+
+  const status = document.getElementById('ocrStatus');
+  status.className = 'status loading';
+  status.textContent = 'Lecture OCR en cours...';
+
+  try {
+    // Use preprocessed image for better OCR
+    const result = await Tesseract.recognize(currentImage, 'fra', {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          status.textContent = 'Lecture... ' + Math.round(m.progress * 100) + '%';
+        }
+      }
+    });
+
+    const text = result.data.text;
+    
+    // Show raw OCR text for debug
+    document.getElementById('ocrRawText').textContent = text;
+    document.getElementById('ocrRawBlock').classList.remove('hidden');
+
+    // EXTRACT AMOUNT - STRATEGY: find ALL amounts, then pick the TOTAL
+    // Step 1: Look line by line for "TOTAL" lines
+    const textLines = text.split('\n');
+    let bestAmount = null;
+    let bestSource = '';
+
+    // Priority 1: Line containing TOTAL, A PAYER, NET, CB/CARTE
+    const totalKeywords = [
+      /TOTAL\s*(?:TTC|EUR|€)?\s*[:=]?\s*(\d+[.,]\d{2})/i,
+      /(?:A|À)\s*PAYER\s*[:=]?\s*(\d+[.,]\d{2})/i,
+      /NET\s*(?:A|À)\s*PAYER\s*[:=]?\s*(\d+[.,]\d{2})/i,
+      /(?:CB|CARTE|EMV|VISA|MC)\s*[:=]?\s*(\d+[.,]\d{2})/i,
+      /MONTANT\s*(?:TTC)?\s*[:=]?\s*(\d+[.,]\d{2})/i,
+    ];
+
+    for (const line of textLines) {
+      for (const pat of totalKeywords) {
+        const m = line.match(pat);
+        if (m) {
+          const val = parseFloat(m[1].replace(',', '.'));
+          if (val > 0 && val < 50000) {
+            // Keep the LARGEST "total" found (the real total is usually the biggest)
+            if (!bestAmount || val > bestAmount) {
+              bestAmount = val;
+              bestSource = line.trim();
+            }
+          }
+        }
+      }
+    }
+
+    // Priority 2: If no TOTAL keyword found, take the LARGEST amount in the whole text
+    if (!bestAmount) {
+      const allAmounts = text.match(/(\d+[.,]\d{2})/g);
+      if (allAmounts) {
+        const values = allAmounts.map(a => parseFloat(a.replace(',', '.'))).filter(v => v > 0.5 && v < 50000);
+        if (values.length > 0) {
+          bestAmount = Math.max(...values);
+          bestSource = 'plus gros montant';
+        }
+      }
+    }
+
+    if (bestAmount) {
+      document.getElementById('amount').value = bestAmount.toFixed(2);
+    }
+
+    // EXTRACT DATE - find ALL dates, pick the most plausible one
+    const allDates = [];
+    const dateRegex = /(\d{2})[\/\-.](\d{2})[\/\-.](\d{2,4})/g;
+    let dm;
+    while ((dm = dateRegex.exec(text)) !== null) {
+      let day = parseInt(dm[1]), month = parseInt(dm[2]);
+      let year = dm[3].length === 2 ? '20' + dm[3] : dm[3];
+      let yi = parseInt(year);
+      // Valid date check
+      if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && yi >= 2024 && yi <= 2027) {
+        const ds = year + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+        if (!isNaN(Date.parse(ds))) {
+          // Check context: is it near DATE/LE/DU keyword?
+          const before = text.substring(Math.max(0, dm.index - 20), dm.index).toUpperCase();
+          const priority = /DATE|LE\s|DU\s|EMISSION/i.test(before) ? 10 : 1;
+          allDates.push({ ds, priority, raw: dm[0] });
+        }
+      }
+    }
+    // Pick date with highest priority, or first valid one
+    if (allDates.length > 0) {
+      allDates.sort((a, b) => b.priority - a.priority);
+      document.getElementById('ticketDate').value = allDates[0].ds;
+    }
+
+    // EXTRACT MERCHANT - first meaningful line
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+    for (const line of lines.slice(0, 8)) {
+      const clean = line.replace(/[^a-zA-ZÀ-ɏ\s\-']/g, '').trim();
+      if (clean.length >= 3 && !/^(TICKET|FACTURE|RECU|DATE|HEURE|TEL|TVA|SIRET|EUR|TOTAL|CARTE|MERCI)/i.test(clean)) {
+        document.getElementById('merchant').value = clean.substring(0, 35);
+        break;
+      }
+    }
+
+    status.className = 'status done';
+    const parts = [];
+    if (document.getElementById('amount').value) parts.push('montant');
+    if (document.getElementById('ticketDate').value !== new Date().toISOString().split('T')[0]) parts.push('date');
+    if (document.getElementById('merchant').value) parts.push('commercant');
+    
+    if (parts.length > 0) {
+      status.textContent = 'Trouve : ' + parts.join(', ') + ' - verifie et corrige si besoin';
+    } else {
+      status.textContent = 'Pas pu lire le ticket - remplis manuellement';
+    }
+
+  } catch(e) {
+    status.className = 'status error';
+    status.textContent = 'Erreur OCR - remplis manuellement';
+    console.error(e);
+  }
+}
+
+function saveTicket() {
+  const merchant = document.getElementById('merchant').value.trim() || 'INCONNU';
+  const amount = parseFloat(document.getElementById('amount').value) || 0;
+  const date = document.getElementById('ticketDate').value;
+  const category = document.getElementById('category').value;
+  const note = document.getElementById('note').value.trim();
+  if (!amount || !date) { alert('Montant et date obligatoires'); return; }
+  const clean = merchant.replace(/[^a-zA-Z0-9À-ɏ\s\-]/g, '').trim();
+  const filename = clean + ' - ' + date + ' - ' + amount.toFixed(2) + 'EUR';
+  const ticket = { merchant, amount, date, category, note, filename, image: currentImageRaw, ts: new Date().toISOString() };
+  tickets.push(ticket);
+  try { localStorage.setItem('sas_cdr_tickets2', JSON.stringify(tickets)); } catch(e) {}
+  document.getElementById('savedInfo').textContent = filename;
+  document.getElementById('step2').classList.add('hidden');
+  document.getElementById('step3').classList.remove('hidden');
+  updateUI();
+}
+
+function scanMore() {
+  currentImage = null; currentImageRaw = null;
+  document.getElementById('preview').classList.add('hidden');
+  document.getElementById('ph').classList.remove('hidden');
+  document.getElementById('nextBtn').classList.add('hidden');
+  document.getElementById('merchant').value = '';
+  document.getElementById('amount').value = '';
+  document.getElementById('note').value = '';
+  goStep1();
+}
+
+function updateUI() {
+  document.getElementById('counter').innerHTML = tickets.length + '<span>tickets</span>';
+  const list = document.getElementById('historyList');
+  list.innerHTML = '';
+  if (tickets.length > 0) {
+    document.getElementById('exportAllBtn').classList.remove('hidden');
+    document.getElementById('totalBar').classList.remove('hidden');
+    document.getElementById('totalValue').textContent = tickets.reduce((s,t) => s + t.amount, 0).toFixed(2) + ' EUR';
+    for (const t of tickets.slice().reverse()) {
+      const card = document.createElement('div');
+      card.className = 'ticket-card';
+      card.innerHTML = '<div class="info"><div class="merchant">' + t.merchant + '</div><div class="details">' + t.date + ' | ' + t.category + (t.note ? ' | ' + t.note : '') + '</div></div><div class="amount">' + t.amount.toFixed(2) + '</div>';
+      list.appendChild(card);
+    }
+  }
+}
+
+function exportAll() {
+  if (!tickets.length) { alert('Aucun ticket'); return; }
+  tickets.forEach(function(t, i) {
+    setTimeout(function() {
+      if (t.image) { const a = document.createElement('a'); a.href = t.image; a.download = t.filename + '.jpg'; a.click(); }
+    }, i * 600);
+  });
+  setTimeout(function() {
+    const summary = tickets.map(t => ({ commercant: t.merchant, montant_ttc: t.amount, date: t.date, categorie: t.category, note: t.note, fichier: t.filename + '.jpg' }));
+    const b = new Blob([JSON.stringify(summary, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'tickets_' + new Date().toISOString().split('T')[0] + '.json'; a.click();
+    alert(tickets.length + ' tickets exportes !');
+  }, tickets.length * 600 + 500);
+}
+</script>
+</body>
+</html>
