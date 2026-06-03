@@ -393,4 +393,18 @@ function exportAll() {
     const summary = tickets.map(t=>({ commercant:t.merchant, montant_ttc:t.amount, date:t.date, mode_paiement:t.payment, a_rembourser:t.remboursable, categorie:t.category, note:t.note, fichier:t.filename+'.jpg' }));
     const b = new Blob([JSON.stringify(summary,null,2)],{type:'application/json'});
     const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='tickets_'+new Date().toISOString().split('T')[0]+'.json'; a.click();
-    alert(tickets.length+'
+    alert(tickets.length+' tickets export\u00e9s (images + JSON) !');
+  }, tickets.length*500 + 400);
+}
+
+function exportCSV() {
+  if (!tickets.length){ alert('Aucun ticket'); return; }
+  const head = ['Date','Commercant','Montant TTC','Mode paiement','A rembourser','Categorie','Note','Fichier'];
+  const rows = tickets.map(t=>[t.date,t.merchant,t.amount.toFixed(2).replace('.',','),t.payment,(t.remboursable?'OUI':'non'),t.category,t.note,t.filename+'.jpg']);
+  const csv = [head].concat(rows).map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(';')).join('\n');
+  const b = new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='tickets_'+new Date().toISOString().split('T')[0]+'.csv'; a.click();
+}
+</script>
+</body>
+</html>
