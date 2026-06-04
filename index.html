@@ -202,6 +202,7 @@ hr.sep { border:none; border-top:1px solid #e5e7eb; margin:16px 0 12px; }
       <button class="btn btn-success hidden" id="exportAllBtn" onclick="exportAll()">&#11015; Images + JSON</button>
       <button class="btn btn-secondary hidden" id="exportCsvBtn" onclick="exportCSV()">&#128202; CSV</button>
     </div>
+    <button class="btn btn-secondary hidden" id="clearBtn" onclick="clearAll()" style="margin-top:8px;border-color:#e9a23b;color:#a35b00;">&#128465; Vider la liste (apr&egrave;s export)</button>
   </div>
 </div>
 
@@ -483,6 +484,7 @@ function scanMore() {
 }
 
 async function delTicket(ts){ if(!confirm('Supprimer ce ticket ?'))return; tickets=tickets.filter(t=>t.ts!==ts); await dbDel(ts); updateUI(); }
+async function clearAll(){ if(!tickets.length)return; if(!confirm('Vider TOUTE la liste ? À faire seulement APRÈS avoir exporté (CSV + images).'))return; for(const t of tickets.slice()){ await dbDel(t.ts); } tickets=[]; updateUI(); }
 function fmt(n){ return n.toFixed(2).replace('.',',')+' €'; }
 
 function updateUI() {
@@ -493,6 +495,7 @@ function updateUI() {
   document.getElementById('exportCsvBtn').classList.toggle('hidden', !has);
   document.getElementById('totalsBox').classList.toggle('hidden', !has);
   document.getElementById('byCatBox').classList.toggle('hidden', !has);
+  document.getElementById('clearBtn').classList.toggle('hidden', !has);
   if (!has) return;
   const tot = tickets.reduce((s,t)=>s+t.amount,0);
   const remb = tickets.filter(t=>t.remboursable).reduce((s,t)=>s+t.amount,0);
