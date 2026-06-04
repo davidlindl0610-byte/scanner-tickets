@@ -19,9 +19,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .btn-secondary { background: white; color: #e94560; border: 2px solid #e94560; }
 .btn-success { background: #0f3460; color: #4ecca3; }
 .btn:active { opacity: 0.85; transform: scale(0.98); }
-.preview-area { width: 100%; max-height: 280px; background: #eee; border-radius: 10px; overflow: hidden; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; min-height: 90px; }
-.preview-area img { width: 100%; max-height: 280px; object-fit: contain; }
-.preview-area .placeholder { color: #999; font-size: 14px; padding: 28px; text-align: center; }
+.preview-area { width: 100%; max-height: 240px; background: #eee; border-radius: 10px; overflow: hidden; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; min-height: 80px; }
+.preview-area img { width: 100%; max-height: 240px; object-fit: contain; }
+.preview-area .placeholder { color: #999; font-size: 14px; padding: 24px; text-align: center; }
 .form-group { margin-bottom: 12px; }
 .form-group label { display: block; font-size: 13px; color: #0f3460; margin-bottom: 4px; font-weight: 600; }
 .form-group input, .form-group select { width: 100%; padding: 11px; border: 1.5px solid #ddd; border-radius: 8px; background: white; color: #333; font-size: 16px; -webkit-appearance: none; }
@@ -47,8 +47,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .ticket-card .amount { color: #e94560; font-weight: 700; font-size: 17px; }
 .ticket-card .del { font-size:11px; color:#bbb; cursor:pointer; margin-top:2px; }
 .hidden { display: none !important; }
-.success-screen { text-align: center; padding: 22px 0; }
-.success-screen .check { font-size: 46px; color: #4ecca3; }
+.success-screen { text-align: center; padding: 18px 0; }
+.success-screen .check { font-size: 42px; color: #4ecca3; }
 .success-screen h2 { color: #155724; margin-top: 8px; font-size: 17px; }
 .success-screen p { color: #888; margin-top: 6px; font-size: 12px; }
 .counter { text-align: center; font-size: 30px; font-weight: 700; color: #e94560; margin: 6px 0; }
@@ -60,6 +60,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .total-bar .label { font-size: 11px; color: #888; }
 .total-bar .value { font-size: 17px; font-weight: 700; color: #0f3460; }
 .total-bar.remb .value { color:#a35b00; }
+.bycat { background:#fff; border-radius:8px; padding:8px 12px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+.bycat h4 { font-size:12px; color:#0f3460; margin-bottom:6px; }
+.bycat .line { display:flex; justify-content:space-between; font-size:13px; padding:2px 0; }
+.bycat .line .c { color:#444; } .bycat .line .v { font-weight:700; color:#0f3460; }
 .exportbtns { display:flex; gap:8px; }
 .exportbtns .btn { margin-bottom:0; }
 canvas.processing { display: none; }
@@ -72,12 +76,13 @@ hr.sep { border:none; border-top:1px solid #e5e7eb; margin:16px 0 12px; }
 .settings .hint { font-size:11px; color:#888; margin-top:6px; }
 .settings a { color:#e94560; }
 .mini { font-size:12px; padding:9px; }
+.progress { background:#0f3460; color:#fff; border-radius:8px; padding:12px; text-align:center; font-size:14px; margin-bottom:12px; }
 </style>
 </head>
 <body>
 <div class="header">
   <h1>Scanner Tickets - SAS CDR</h1>
-  <p>Photo &rarr; lecture IA &rarr; montant, mode de paiement, &agrave; rembourser</p>
+  <p>Photo(s) &rarr; lecture IA &rarr; montant, mode, cat&eacute;gorie</p>
 </div>
 <div class="container">
 
@@ -93,25 +98,30 @@ hr.sep { border:none; border-top:1px solid #e5e7eb; margin:16px 0 12px; }
         <button class="btn btn-success mini" onclick="saveKey()">Enregistrer la cl&eacute;</button>
         <button class="btn btn-secondary mini" onclick="clearKey()">Effacer</button>
       </div>
-      <div class="hint">La cl&eacute; reste <b>uniquement sur ce t&eacute;l&eacute;phone</b> (jamais envoy&eacute;e ailleurs que vers l'IA de lecture). Cr&eacute;e-la sur <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>. Sans cl&eacute;, l'appli utilise le lecteur gratuit (moins fiable).</div>
+      <div class="hint">La cl&eacute; reste <b>uniquement sur ce t&eacute;l&eacute;phone</b>. Cr&eacute;e-la sur <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>. Sans cl&eacute;, lecteur gratuit (moins fiable).</div>
     </div>
   </div>
 
   <!-- STEP 1 -->
   <div id="step1">
     <div class="preview-area" id="previewArea">
-      <div class="placeholder" id="ph">Prends en photo ton ticket / ta note de frais</div>
+      <div class="placeholder" id="ph">Prends une photo, ou importe plusieurs photos de ta pellicule</div>
       <img id="preview" class="hidden" />
     </div>
     <div class="file-wrap">
-      <button class="btn btn-primary">&#128247; Prendre en photo</button>
+      <button class="btn btn-primary">&#128247; Prendre une photo</button>
       <input type="file" accept="image/*" capture="environment" onchange="onCapture(event)">
     </div>
     <div class="file-wrap">
-      <button class="btn btn-secondary">&#128194; Galerie</button>
-      <input type="file" accept="image/*" onchange="onCapture(event)">
+      <button class="btn btn-secondary">&#128194; Importer (plusieurs possibles)</button>
+      <input type="file" accept="image/*" multiple onchange="onCapture(event)">
     </div>
     <button class="btn btn-success hidden" id="nextBtn" onclick="goStep2()">Analyser le ticket &rarr;</button>
+  </div>
+
+  <!-- BATCH PROGRESS -->
+  <div id="batch" class="hidden">
+    <div class="progress" id="batchProgress">Lecture en cours...</div>
   </div>
 
   <!-- STEP 2 -->
@@ -145,12 +155,12 @@ hr.sep { border:none; border-top:1px solid #e5e7eb; margin:16px 0 12px; }
     <div class="form-group">
       <label>Cat&eacute;gorie</label>
       <select id="category">
-        <option value="Courses / Supermarch&eacute;">Courses / Supermarch&eacute; (Lidl, Metro...)</option>
-        <option value="Restaurant / Repas">Restaurant / Repas (note de frais)</option>
+        <option value="Restaurant / Repas">Restaurant / Repas</option>
+        <option value="Courses / Supermarch&eacute;">Courses / Supermarch&eacute;</option>
         <option value="Fournisseur alimentaire">Fournisseur alimentaire / Boissons</option>
         <option value="Essence / Parking">Essence / Parking / P&eacute;age</option>
         <option value="Transport">Transport (Uber, RATP, taxi)</option>
-        <option value="Fourniture / Mat&eacute;riel">Fourniture / Mat&eacute;riel / &Eacute;quipement</option>
+        <option value="Fourniture / Mat&eacute;riel">Fourniture / Mat&eacute;riel</option>
         <option value="Travaux">Travaux / Am&eacute;nagement</option>
         <option value="Contravention / Amende">Contravention / Amende</option>
         <option value="Scooter MP3 530">Scooter MP3 530</option>
@@ -159,20 +169,20 @@ hr.sep { border:none; border-top:1px solid #e5e7eb; margin:16px 0 12px; }
     </div>
     <div class="form-group">
       <label>Note (optionnel)</label>
-      <input type="text" id="note" placeholder="ex: d&icirc;ner client, n&deg; facture...">
+      <input type="text" id="note" placeholder="ex: d&icirc;ner client...">
     </div>
     <button class="btn btn-primary" onclick="saveTicket()">&#10003; Enregistrer</button>
-    <button class="btn btn-secondary" onclick="goStep1()">&larr; Retour</button>
+    <button class="btn btn-secondary" onclick="scanMore()">&larr; Annuler</button>
   </div>
 
   <!-- STEP 3 -->
   <div id="step3" class="hidden">
     <div class="success-screen">
       <div class="check">&#10003;</div>
-      <h2>Enregistr&eacute; !</h2>
+      <h2 id="successTitle">Enregistr&eacute; !</h2>
       <p id="savedInfo"></p>
     </div>
-    <button class="btn btn-primary" onclick="scanMore()">&#128247; Scanner un autre</button>
+    <button class="btn btn-primary" onclick="scanMore()">&#128247; Scanner / importer encore</button>
     <button class="btn btn-success" onclick="exportAll()">&#11015; T&eacute;l&eacute;charger tout</button>
   </div>
 
@@ -180,12 +190,13 @@ hr.sep { border:none; border-top:1px solid #e5e7eb; margin:16px 0 12px; }
 
   <!-- History -->
   <div class="history">
-    <h3 style="color:#0f3460;font-size:15px;margin-bottom:6px;">Tickets scann&eacute;s</h3>
+    <h3 style="color:#0f3460;font-size:15px;margin-bottom:6px;">Tickets enregistr&eacute;s</h3>
     <div class="counter" id="counter">0<span>tickets</span></div>
     <div class="totals hidden" id="totalsBox">
       <div class="total-bar"><div class="label">Total</div><div class="value" id="totalValue">0,00 &euro;</div></div>
       <div class="total-bar remb"><div class="label">&Agrave; rembourser</div><div class="value" id="rembValue">0,00 &euro;</div></div>
     </div>
+    <div class="bycat hidden" id="byCatBox"><h4>Total par cat&eacute;gorie</h4><div id="byCatList"></div></div>
     <div id="historyList"></div>
     <div class="exportbtns" id="exportBtns" style="margin-top:8px;">
       <button class="btn btn-success hidden" id="exportAllBtn" onclick="exportAll()">&#11015; Images + JSON</button>
@@ -214,9 +225,31 @@ const PAYMODES = [
   {k:'CB société', remb:false},
   {k:'Vir./Prélèvement', remb:false}
 ];
-try { tickets = JSON.parse(localStorage.getItem('sas_cdr_tickets3') || '[]'); } catch(e) {}
-
 function isRemb(pk){ const p=PAYMODES.find(x=>x.k===pk); return p?p.remb:true; }
+
+// ===== Stockage IndexedDB (grande capacité, pas de perte) =====
+let db=null;
+function openDB(){ return new Promise((res)=>{ try{
+  const r=indexedDB.open('sascdr',1);
+  r.onupgradeneeded=e=>{ const d=e.target.result; if(!d.objectStoreNames.contains('tickets')) d.createObjectStore('tickets',{keyPath:'ts'}); };
+  r.onsuccess=e=>{ db=e.target.result; res(); };
+  r.onerror=()=>res();
+}catch(e){ res(); } }); }
+function dbAll(){ return new Promise((res)=>{ if(!db){res([]);return;} try{ const tx=db.transaction('tickets','readonly').objectStore('tickets').getAll(); tx.onsuccess=()=>res(tx.result||[]); tx.onerror=()=>res([]); }catch(e){res([]);} }); }
+function dbPut(t){ return new Promise((res)=>{ if(!db){res();return;} try{ const tx=db.transaction('tickets','readwrite'); tx.objectStore('tickets').put(t); tx.oncomplete=()=>res(); tx.onerror=()=>res(); }catch(e){res();} }); }
+function dbDel(ts){ return new Promise((res)=>{ if(!db){res();return;} try{ const tx=db.transaction('tickets','readwrite'); tx.objectStore('tickets').delete(ts); tx.oncomplete=()=>res(); tx.onerror=()=>res(); }catch(e){res();} }); }
+
+async function init(){
+  await openDB();
+  tickets = await dbAll();
+  // migration depuis ancien localStorage si besoin
+  if (!tickets.length){
+    try { const old = JSON.parse(localStorage.getItem('sas_cdr_tickets3')||'[]'); if(old.length){ for(const t of old){ if(!t.ts) t.ts=new Date().toISOString()+Math.random(); await dbPut(t); } tickets=await dbAll(); } } catch(e){}
+  }
+  tickets.sort((a,b)=> (a.ts<b.ts?-1:1));
+  renderChips(); refreshAiState(); updateUI();
+}
+init();
 
 // ===== Settings / cle API =====
 function refreshAiState(){
@@ -233,59 +266,52 @@ function saveKey(){
   document.getElementById('apiKey').value='';
   refreshAiState();
   document.getElementById('settingsBody').classList.add('hidden');
-  alert('Clé enregistrée sur ce téléphone. La lecture IA est activée.');
+  alert('Clé enregistrée sur ce téléphone. Lecture IA activée.');
 }
 function clearKey(){ try{ localStorage.removeItem('sas_cdr_aikey'); }catch(e){} refreshAiState(); alert('Clé effacée.'); }
 
 function renderChips(){
-  const mc=document.getElementById('merchantChips'); mc.innerHTML='';
-  MERCHANTS.forEach(m=>{ const c=document.createElement('div'); c.className='chip'; c.textContent=m; c.onclick=()=>{document.getElementById('merchant').value=m;}; mc.appendChild(c); });
-  const pc=document.getElementById('payChips'); pc.innerHTML='';
-  PAYMODES.forEach(p=>{ const c=document.createElement('div'); c.className='chip pay'+(p.k===selectedPay?' active':''); c.textContent=p.k; c.onclick=()=>{selectedPay=p.k; renderChips();}; pc.appendChild(c); });
+  const mc=document.getElementById('merchantChips'); if(mc){ mc.innerHTML=''; MERCHANTS.forEach(m=>{ const c=document.createElement('div'); c.className='chip'; c.textContent=m; c.onclick=()=>{document.getElementById('merchant').value=m;}; mc.appendChild(c); }); }
+  const pc=document.getElementById('payChips'); if(pc){ pc.innerHTML=''; PAYMODES.forEach(p=>{ const c=document.createElement('div'); c.className='chip pay'+(p.k===selectedPay?' active':''); c.textContent=p.k; c.onclick=()=>{selectedPay=p.k; renderChips();}; pc.appendChild(c); }); }
 }
-renderChips();
-refreshAiState();
-updateUI();
 
-// ===== Capture photo =====
+// ===== Traitement image -> dataURL réduite =====
+function fileToImage(file){ return new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=ev=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=ev.target.result; }; rd.onerror=rej; rd.readAsDataURL(file); }); }
+function processImage(img){
+  const c=document.getElementById('processCanvas');
+  const maxW=1400; const scale=Math.min(1,maxW/img.width);
+  c.width=img.width*scale; c.height=img.height*scale;
+  const ctx=c.getContext('2d'); ctx.drawImage(img,0,0,c.width,c.height);
+  const raw=c.toDataURL('image/jpeg',0.8);
+  const imgData=ctx.getImageData(0,0,c.width,c.height); const d=imgData.data;
+  for(let i=0;i<d.length;i+=4){ let g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2]; g=((g-128)*1.9)+128; g=Math.max(0,Math.min(255,g)); if(g<135)g=0; else if(g>185)g=255; d[i]=d[i+1]=d[i+2]=g; }
+  ctx.putImageData(imgData,0,0);
+  const bw=c.toDataURL('image/png');
+  return {raw, bw};
+}
+
+// ===== Capture / import =====
 function onCapture(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev) {
-    const img = new Image();
-    img.onload = function() {
-      const c = document.getElementById('processCanvas');
-      const maxW = 1500;
-      const scale = Math.min(1, maxW / img.width);
-      c.width = img.width * scale; c.height = img.height * scale;
-      const ctx = c.getContext('2d');
-      ctx.drawImage(img, 0, 0, c.width, c.height);
-      currentImageRaw = c.toDataURL('image/jpeg', 0.82);
-      const imgData = ctx.getImageData(0, 0, c.width, c.height);
-      const d = imgData.data;
-      for (let i = 0; i < d.length; i += 4) {
-        let gray = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
-        gray = ((gray - 128) * 1.9) + 128;
-        gray = Math.max(0, Math.min(255, gray));
-        if (gray < 135) gray = 0; else if (gray > 185) gray = 255;
-        d[i]=d[i+1]=d[i+2]=gray;
-      }
-      ctx.putImageData(imgData, 0, 0);
-      currentImage = c.toDataURL('image/png');
-      document.getElementById('preview').src = currentImageRaw;
-      document.getElementById('preview').classList.remove('hidden');
-      document.getElementById('ph').classList.add('hidden');
-      document.getElementById('nextBtn').classList.remove('hidden');
-    };
-    img.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
+  const files = Array.from(e.target.files||[]);
+  e.target.value='';
+  if (!files.length) return;
+  if (files.length === 1) { singleCapture(files[0]); }
+  else { batchImport(files); }
 }
 
-function goStep1(){ document.getElementById('step1').classList.remove('hidden'); document.getElementById('step2').classList.add('hidden'); document.getElementById('step3').classList.add('hidden'); }
+async function singleCapture(file){
+  const img = await fileToImage(file);
+  const p = processImage(img);
+  currentImageRaw = p.raw; currentImage = p.bw;
+  document.getElementById('preview').src = currentImageRaw;
+  document.getElementById('preview').classList.remove('hidden');
+  document.getElementById('ph').classList.add('hidden');
+  document.getElementById('nextBtn').classList.remove('hidden');
+}
 
-// ===== Analyse =====
+function goStep1(){ document.getElementById('step1').classList.remove('hidden'); document.getElementById('step2').classList.add('hidden'); document.getElementById('step3').classList.add('hidden'); document.getElementById('batch').classList.add('hidden'); }
+
+// ===== Analyse (1 ticket avec revue) =====
 async function goStep2() {
   document.getElementById('step1').classList.add('hidden');
   document.getElementById('step2').classList.remove('hidden');
@@ -293,32 +319,84 @@ async function goStep2() {
   document.getElementById('ocrRawBlock').classList.add('hidden');
   const status = document.getElementById('ocrStatus');
   status.className = 'status loading';
-
   if (getKey()) {
     status.textContent = 'Lecture IA en cours...';
-    try {
-      const r = await analyzeWithAI(currentImageRaw);
-      applyResult(r);
-      status.className = 'status done';
-      status.textContent = 'Lu par IA — vérifie/corrige si besoin';
-      return;
-    } catch(e) {
-      status.className = 'status error';
-      status.textContent = 'IA indispo (' + (e.message||e) + ') — lecteur gratuit...';
-    }
+    try { const r = await analyzeWithAI(currentImageRaw); applyResult(r); status.className='status done'; status.textContent='Lu par IA — vérifie/corrige si besoin'; return; }
+    catch(e) { status.className='status error'; status.textContent='IA indispo ('+(e.message||e)+') — lecteur gratuit...'; }
   }
   await analyzeWithTesseract(status);
+}
+
+// ===== Import lot (plusieurs photos, lecture une par une, auto-enregistré) =====
+async function batchImport(files){
+  document.getElementById('step1').classList.add('hidden');
+  document.getElementById('batch').classList.remove('hidden');
+  const pr = document.getElementById('batchProgress');
+  if (!getKey()) { pr.innerHTML = 'Pour lire plusieurs photos automatiquement, active d\'abord la <b>Lecture IA</b> (clé API).'; setTimeout(()=>{ goStep1(); }, 50); document.getElementById('settingsBody').classList.remove('hidden'); document.getElementById('batch').classList.add('hidden'); document.getElementById('step1').classList.remove('hidden'); return; }
+  let ok=0, fail=0;
+  for (let i=0;i<files.length;i++){
+    pr.innerHTML = 'Lecture du ticket <b>'+(i+1)+'/'+files.length+'</b>...';
+    try {
+      const img = await fileToImage(files[i]);
+      const p = processImage(img);
+      const r = await analyzeWithAI(p.raw);
+      const t = buildTicket(r, p.raw);
+      tickets.push(t); await dbPut(t); ok++;
+      updateUI();
+    } catch(e){ fail++; }
+  }
+  document.getElementById('batch').classList.add('hidden');
+  document.getElementById('step3').classList.remove('hidden');
+  document.getElementById('successTitle').textContent = ok+' ticket(s) ajouté(s)';
+  document.getElementById('savedInfo').textContent = (fail? (fail+' illisibles, à ajouter à la main. ') : '') + 'Vérifie les montants dans la liste ci-dessous.';
+}
+
+function buildTicket(r, rawImg){
+  let amount = parseFloat(r.amount); if(isNaN(amount)) amount=0;
+  let date = normDate(r.date) || new Date().toISOString().split('T')[0];
+  let pay = payFromMode(r.payment_mode);
+  let merchant = (r.merchant? String(r.merchant).slice(0,40) : 'INCONNU');
+  let category = catFromMode(r.category, merchant);
+  const clean = merchant.replace(/[^a-zA-Z0-9À-ſ\s\-]/g,'').trim();
+  const ts = new Date().toISOString()+'_'+Math.random().toString(36).slice(2,7);
+  return { merchant, amount, date, category, note:'', payment:pay, remboursable:isRemb(pay), filename: clean+' - '+date+' - '+amount.toFixed(2)+'EUR', image: rawImg, ts };
+}
+function payFromMode(pm){
+  pm=(pm||'').toString().toUpperCase();
+  if (/AMEX|AMERICAN/.test(pm)) return 'AMEX (perso, remboursé)';
+  if (/ESP|CASH|LIQUID|MONNAIE|RENDU/.test(pm)) return 'Espèces (avancé perso)';
+  if (/CB|CARTE|VISA|MASTER|BANCAIRE|SANS CONTACT|EMV/.test(pm)) return 'CB perso (avancé)';
+  if (/VIR|PREL/.test(pm)) return 'Vir./Prélèvement';
+  return 'Espèces (avancé perso)';
+}
+function catFromMode(cat, merchant){
+  const m=(merchant||'').toLowerCase();
+  if (/lidl|metro|monoprix|franprix|carrefour|auchan|courses/.test(m)) return 'Courses / Supermarché';
+  if (/total|essence|station|parking|garage|p[ée]age/.test(m)) return 'Essence / Parking';
+  if (/uber|taxi|ratp|sncf|navigo/.test(m)) return 'Transport';
+  if (/leroy|castorama|brico/.test(m)) return 'Fourniture / Matériel';
+  return 'Restaurant / Repas';
+}
+
+// Normalise date -> AAAA-MM-JJ
+function normDate(s){
+  if(!s) return '';
+  s=String(s).trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  let m=s.match(/(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+  if(m){ return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0'); }
+  m=s.match(/(\d{1,2})[\/\-. ](\d{1,2})[\/\-. ](\d{2,4})/);
+  if(m){ let d=m[1].padStart(2,'0'), mo=m[2].padStart(2,'0'), y=m[3]; if(y.length===2) y='20'+y; if(parseInt(mo)>12&&parseInt(d)<=12){ const t=d; d=mo; mo=t; } return y+'-'+mo+'-'+d; }
+  return '';
 }
 
 function applyResult(r){
   if (r.amount != null && !isNaN(parseFloat(r.amount))) document.getElementById('amount').value = parseFloat(r.amount).toFixed(2);
   if (r.merchant) document.getElementById('merchant').value = String(r.merchant).slice(0,40);
-  if (r.date && /^\d{4}-\d{2}-\d{2}$/.test(r.date)) document.getElementById('ticketDate').value = r.date;
-  const pm = (r.payment_mode||'').toString().toUpperCase();
-  if (/ESP/.test(pm)) selectedPay='Espèces (avancé perso)';
-  else if (/AMEX|AMERICAN/.test(pm)) selectedPay='AMEX (perso, remboursé)';
-  else if (/CB|CARTE|VISA|MASTER/.test(pm)) selectedPay='CB perso (avancé)';
-  else if (/VIR|PREL/.test(pm)) selectedPay='Vir./Prélèvement';
+  const nd = normDate(r.date); if (nd) document.getElementById('ticketDate').value = nd;
+  selectedPay = payFromMode(r.payment_mode);
+  const cat = catFromMode(r.category, r.merchant); const sel=document.getElementById('category');
+  for (const o of sel.options){ if(o.value===cat){ sel.value=cat; break; } }
   renderChips();
 }
 
@@ -326,36 +404,22 @@ async function analyzeWithAI(imageDataUrl){
   const key = getKey();
   const b64 = imageDataUrl.split(',')[1];
   const prompt = "Tu lis un ticket de caisse ou une note de frais (souvent en francais, parfois froisse). "
-    + "Reponds UNIQUEMENT par un objet JSON valide, sans texte autour, avec ces champs: "
-    + "merchant (nom du commercant), amount (montant TOTAL paye TTC, nombre avec point decimal, le plus grand total, pas un sous-total ni une ligne de TVA), "
-    + "date (format AAAA-MM-JJ), payment_mode (un de: Especes, CB, AMEX, Virement, ou vide). "
-    + "Si une info est illisible, mets une chaine vide. Ne mets rien d'autre que le JSON.";
+    + "Reponds UNIQUEMENT par un objet JSON valide, sans aucun texte autour, avec EXACTEMENT ces champs: "
+    + "merchant (nom du commercant ou du restaurant), "
+    + "amount (montant TOTAL paye TTC en euros, nombre avec point decimal, le plus grand total paye, jamais un sous-total/HT/ligne de TVA), "
+    + "date (la date d'ACHAT imprimee sur le ticket, souvent JJ/MM/AAAA ou JJ.MM.AA pres de l'heure; convertis STRICTEMENT en AAAA-MM-JJ), "
+    + "payment_mode (moyen de paiement imprime: 'AMEX' si American Express/AMEX, 'CB' si carte bancaire/CB/Visa/Mastercard/sans contact/EMV, 'Especes' si especes/cash/rendu/monnaie, 'Virement' si virement/prelevement; sinon vide), "
+    + "category (un de: 'Restaurant', 'Courses', 'Essence', 'Transport', 'Fourniture', 'Travaux', 'Autre'). "
+    + "Regarde les lignes de paiement en bas du ticket. Si une info est illisible, mets une chaine vide. Rien d'autre que le JSON.";
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
-    headers:{
-      'x-api-key': key,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true',
-      'content-type':'application/json'
-    },
-    body: JSON.stringify({
-      model: AI_MODEL,
-      max_tokens: 300,
-      messages:[{ role:'user', content:[
-        { type:'image', source:{ type:'base64', media_type:'image/jpeg', data: b64 } },
-        { type:'text', text: prompt }
-      ]}]
-    })
+    headers:{ 'x-api-key': key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true', 'content-type':'application/json' },
+    body: JSON.stringify({ model: AI_MODEL, max_tokens: 300, messages:[{ role:'user', content:[ { type:'image', source:{ type:'base64', media_type:'image/jpeg', data: b64 } }, { type:'text', text: prompt } ]}] })
   });
-  if (!resp.ok) {
-    let msg = 'HTTP ' + resp.status;
-    try { const j = await resp.json(); if (j.error && j.error.message) msg = j.error.message.slice(0,60); } catch(e){}
-    throw new Error(msg);
-  }
+  if (!resp.ok) { let msg='HTTP '+resp.status; try{ const j=await resp.json(); if(j.error&&j.error.message) msg=j.error.message.slice(0,60); }catch(e){} throw new Error(msg); }
   const data = await resp.json();
   let txt = (data.content && data.content[0] && data.content[0].text) ? data.content[0].text : '';
-  document.getElementById('ocrRawText').textContent = txt;
-  document.getElementById('ocrRawBlock').classList.remove('hidden');
+  const rb=document.getElementById('ocrRawText'); if(rb){ rb.textContent=txt; document.getElementById('ocrRawBlock').classList.remove('hidden'); }
   txt = txt.replace(/```json/gi,'').replace(/```/g,'').trim();
   const m = txt.match(/\{[\s\S]*\}/);
   if (!m) throw new Error('réponse illisible');
@@ -364,70 +428,45 @@ async function analyzeWithAI(imageDataUrl){
 
 async function analyzeWithTesseract(status){
   try {
-    const result = await Tesseract.recognize(currentImage, 'fra', {
-      logger: m => { if (m.status === 'recognizing text') status.textContent = 'Lecture... ' + Math.round(m.progress*100) + '%'; }
-    });
+    const result = await Tesseract.recognize(currentImage, 'fra', { logger: m => { if (m.status === 'recognizing text') status.textContent = 'Lecture... ' + Math.round(m.progress*100) + '%'; } });
     const text = result.data.text;
     document.getElementById('ocrRawText').textContent = text;
     document.getElementById('ocrRawBlock').classList.remove('hidden');
-    const textLines = text.split('\n');
     const AMT = /\d{1,3}(?:[ .,]\d{3})*[.,]\d{2}/g;
-    function parseNum(s){
-      s = s.replace(/[^\d.,]/g,'');
-      if (s.includes(',') && s.includes('.')) {
-        if (s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g,'').replace(',', '.');
-        else s = s.replace(/,/g,'');
-      } else if (s.includes(',')) {
-        if (/,\d{2}$/.test(s)) s = s.replace(/\./g,'').replace(',', '.'); else s = s.replace(/[,]/g,'');
-      } else if (/\.\d{3}\b/.test(s) && !/\.\d{2}$/.test(s)) { s = s.replace(/\./g,''); }
-      const v = parseFloat(s); return (isNaN(v)?null:v);
-    }
-    function amountsOn(line){ const m = line.match(AMT)||[]; return m.map(parseNum).filter(v=>v!=null && v>0 && v<200000); }
-    let best = null;
-    for (const line of textLines) {
-      const U = line.toUpperCase();
-      if (/(TOTAL|NET\s*[AÀ]\s*PAYER|MONTANT\s*TTC|[AÀ]\s*PAYER)/.test(U) && !/SOUS|TOTAL\s*HT|\bHT\b|TVA|REMISE|ESCOMPTE/.test(U)) {
-        const vals = amountsOn(line); if (vals.length) { const v = Math.max(...vals); if (!best || v>best) best = v; }
-      }
-    }
-    if (!best) { const all = (text.match(AMT)||[]).map(parseNum).filter(v=>v!=null && v>0.5 && v<200000); if (all.length) best = Math.max(...all); }
-    if (best) document.getElementById('amount').value = best.toFixed(2);
-    const dateRegex = /(\d{2})[\/\-.](\d{2})[\/\-.](\d{2,4})/g; let dm; const dates=[];
-    while ((dm = dateRegex.exec(text)) !== null) {
-      let day=parseInt(dm[1]), month=parseInt(dm[2]); let year = dm[3].length===2 ? '20'+dm[3] : dm[3]; let yi=parseInt(year);
-      if (day>=1&&day<=31&&month>=1&&month<=12&&yi>=2024&&yi<=2027) dates.push(year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0'));
-    }
-    if (dates.length) document.getElementById('ticketDate').value = dates[0];
-    const up = text.toUpperCase();
-    if (/ESPECE|ESPÈCE|RENDU|MONNAIE/.test(up)) selectedPay='Espèces (avancé perso)';
-    else if (/AMEX|AMERICAN EXPRESS/.test(up)) selectedPay='AMEX (perso, remboursé)';
-    else if (/CB|CARTE|VISA|MASTERCARD/.test(up)) selectedPay='CB perso (avancé)';
-    let foundM='';
-    for (const known of ['LIDL','METRO','FRANPRIX','MONOPRIX','CARREFOUR','AUCHAN','TOTAL','UBER','AMAZON','LEROY']) { if (up.includes(known)) { foundM = known.charAt(0)+known.slice(1).toLowerCase(); break; } }
-    if (foundM) document.getElementById('merchant').value = foundM;
-    renderChips();
-    status.className='status done';
-    status.textContent='Lu (gratuit) — vérifie/corrige';
-  } catch(e) {
-    status.className='status error'; status.textContent='Lecture impossible — remplis à la main';
-  }
+    function parseNum(s){ s=s.replace(/[^\d.,]/g,''); if(s.includes(',')&&s.includes('.')){ if(s.lastIndexOf(',')>s.lastIndexOf('.')) s=s.replace(/\./g,'').replace(',','.'); else s=s.replace(/,/g,''); } else if(s.includes(',')){ if(/,\d{2}$/.test(s)) s=s.replace(/\./g,'').replace(',','.'); else s=s.replace(/[,]/g,''); } else if(/\.\d{3}\b/.test(s)&&!/\.\d{2}$/.test(s)){ s=s.replace(/\./g,''); } const v=parseFloat(s); return isNaN(v)?null:v; }
+    function amountsOn(line){ const m=line.match(AMT)||[]; return m.map(parseNum).filter(v=>v!=null&&v>0&&v<200000); }
+    let best=null;
+    for (const line of text.split('\n')){ const U=line.toUpperCase(); if(/(TOTAL|NET\s*[AÀ]\s*PAYER|MONTANT\s*TTC|[AÀ]\s*PAYER)/.test(U) && !/SOUS|TOTAL\s*HT|\bHT\b|TVA|REMISE|ESCOMPTE/.test(U)){ const vals=amountsOn(line); if(vals.length){ const v=Math.max(...vals); if(!best||v>best) best=v; } } }
+    if(!best){ const all=(text.match(AMT)||[]).map(parseNum).filter(v=>v!=null&&v>0.5&&v<200000); if(all.length) best=Math.max(...all); }
+    if(best) document.getElementById('amount').value=best.toFixed(2);
+    const dr=/(\d{2})[\/\-.](\d{2})[\/\-.](\d{2,4})/g; let dm; const dates=[];
+    while((dm=dr.exec(text))!==null){ let day=+dm[1],month=+dm[2]; let year=dm[3].length===2?'20'+dm[3]:dm[3]; let yi=+year; if(day>=1&&day<=31&&month>=1&&month<=12&&yi>=2024&&yi<=2027) dates.push(year+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0')); }
+    if(dates.length) document.getElementById('ticketDate').value=dates[0];
+    const up=text.toUpperCase();
+    if(/AMEX|AMERICAN EXPRESS/.test(up)) selectedPay='AMEX (perso, remboursé)';
+    else if(/ESPECE|ESPÈCE|RENDU|MONNAIE/.test(up)) selectedPay='Espèces (avancé perso)';
+    else if(/CB|CARTE|VISA|MASTERCARD/.test(up)) selectedPay='CB perso (avancé)';
+    let foundM=''; for(const k of ['LIDL','METRO','FRANPRIX','MONOPRIX','CARREFOUR','AUCHAN','TOTAL','UBER','AMAZON','LEROY']){ if(up.includes(k)){ foundM=k.charAt(0)+k.slice(1).toLowerCase(); break; } }
+    if(foundM) document.getElementById('merchant').value=foundM;
+    renderChips(); status.className='status done'; status.textContent='Lu (gratuit) — vérifie/corrige';
+  } catch(e){ status.className='status error'; status.textContent='Lecture impossible — remplis à la main'; }
 }
 
 // ===== Sauvegarde & historique =====
-function saveTicket() {
+async function saveTicket() {
   const merchant = document.getElementById('merchant').value.trim() || 'INCONNU';
   const amount = parseFloat(document.getElementById('amount').value) || 0;
   const date = document.getElementById('ticketDate').value;
   const category = document.getElementById('category').value;
   const note = document.getElementById('note').value.trim();
-  const payment = selectedPay;
-  const remboursable = isRemb(selectedPay);
+  const payment = selectedPay; const remboursable = isRemb(selectedPay);
   if (!amount || !date) { alert('Montant et date obligatoires'); return; }
   const clean = merchant.replace(/[^a-zA-Z0-9À-ſ\s\-]/g,'').trim();
-  const filename = clean + ' - ' + date + ' - ' + amount.toFixed(2) + 'EUR';
-  tickets.push({ merchant, amount, date, category, note, payment, remboursable, filename, image: currentImageRaw, ts:new Date().toISOString() });
-  try { localStorage.setItem('sas_cdr_tickets3', JSON.stringify(tickets)); } catch(e) {}
-  document.getElementById('savedInfo').textContent = filename + ' — ' + payment + (remboursable?' (à rembourser)':'');
+  const ts = new Date().toISOString()+'_'+Math.random().toString(36).slice(2,7);
+  const t = { merchant, amount, date, category, note, payment, remboursable, filename: clean+' - '+date+' - '+amount.toFixed(2)+'EUR', image: currentImageRaw, ts };
+  tickets.push(t); await dbPut(t);
+  document.getElementById('successTitle').textContent='Enregistré !';
+  document.getElementById('savedInfo').textContent = t.filename + ' — ' + payment + (remboursable?' (à rembourser)':'');
   document.getElementById('step2').classList.add('hidden');
   document.getElementById('step3').classList.remove('hidden');
   updateUI();
@@ -443,7 +482,7 @@ function scanMore() {
   goStep1();
 }
 
-function delTicket(ts){ if(!confirm('Supprimer ce ticket ?'))return; tickets=tickets.filter(t=>t.ts!==ts); try{localStorage.setItem('sas_cdr_tickets3',JSON.stringify(tickets));}catch(e){} updateUI(); }
+async function delTicket(ts){ if(!confirm('Supprimer ce ticket ?'))return; tickets=tickets.filter(t=>t.ts!==ts); await dbDel(ts); updateUI(); }
 function fmt(n){ return n.toFixed(2).replace('.',',')+' €'; }
 
 function updateUI() {
@@ -453,19 +492,23 @@ function updateUI() {
   document.getElementById('exportAllBtn').classList.toggle('hidden', !has);
   document.getElementById('exportCsvBtn').classList.toggle('hidden', !has);
   document.getElementById('totalsBox').classList.toggle('hidden', !has);
-  if (has) {
-    const tot = tickets.reduce((s,t)=>s+t.amount,0);
-    const remb = tickets.filter(t=>t.remboursable).reduce((s,t)=>s+t.amount,0);
-    document.getElementById('totalValue').textContent = fmt(tot);
-    document.getElementById('rembValue').textContent = fmt(remb);
-    for (const t of tickets.slice().reverse()) {
-      const card = document.createElement('div');
-      card.className = 'ticket-card' + (t.remboursable?' remb':'');
-      const tag = t.remboursable ? '<span class="tag remb">à rembourser</span>' : '<span class="tag soc">société</span>';
-      card.innerHTML = '<div class="info"><div class="merchant">'+t.merchant+tag+'</div><div class="details">'+t.date+' · '+(t.payment||'')+(t.note?' · '+t.note:'')+'</div></div>'+
-        '<div class="right"><div class="amount">'+fmt(t.amount)+'</div><div class="del" onclick="delTicket(\''+t.ts+'\')">supprimer</div></div>';
-      list.appendChild(card);
-    }
+  document.getElementById('byCatBox').classList.toggle('hidden', !has);
+  if (!has) return;
+  const tot = tickets.reduce((s,t)=>s+t.amount,0);
+  const remb = tickets.filter(t=>t.remboursable).reduce((s,t)=>s+t.amount,0);
+  document.getElementById('totalValue').textContent = fmt(tot);
+  document.getElementById('rembValue').textContent = fmt(remb);
+  // totaux par categorie
+  const byCat={}; for(const t of tickets){ byCat[t.category]=(byCat[t.category]||0)+t.amount; }
+  const bc=document.getElementById('byCatList'); bc.innerHTML='';
+  Object.keys(byCat).sort((a,b)=>byCat[b]-byCat[a]).forEach(c=>{ const d=document.createElement('div'); d.className='line'; d.innerHTML='<span class="c">'+c+'</span><span class="v">'+fmt(byCat[c])+'</span>'; bc.appendChild(d); });
+  for (const t of tickets.slice().reverse()) {
+    const card = document.createElement('div');
+    card.className = 'ticket-card' + (t.remboursable?' remb':'');
+    const tag = t.remboursable ? '<span class="tag remb">à rembourser</span>' : '<span class="tag soc">société</span>';
+    card.innerHTML = '<div class="info"><div class="merchant">'+t.merchant+tag+'</div><div class="details">'+t.date+' · '+(t.category||'')+' · '+(t.payment||'')+'</div></div>'+
+      '<div class="right"><div class="amount">'+fmt(t.amount)+'</div><div class="del" onclick="delTicket(\''+t.ts+'\')">supprimer</div></div>';
+    list.appendChild(card);
   }
 }
 
