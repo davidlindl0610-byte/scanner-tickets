@@ -280,10 +280,10 @@ function renderChips(){
 function fileToImage(file){ return new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=ev=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=ev.target.result; }; rd.onerror=rej; rd.readAsDataURL(file); }); }
 function processImage(img){
   const c=document.getElementById('processCanvas');
-  const maxW=1400; const scale=Math.min(1,maxW/img.width);
+  const maxW=1100; const scale=Math.min(1,maxW/img.width);
   c.width=img.width*scale; c.height=img.height*scale;
   const ctx=c.getContext('2d'); ctx.drawImage(img,0,0,c.width,c.height);
-  const raw=c.toDataURL('image/jpeg',0.8);
+  const raw=c.toDataURL('image/jpeg',0.72);
   const imgData=ctx.getImageData(0,0,c.width,c.height); const d=imgData.data;
   for(let i=0;i<d.length;i+=4){ let g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2]; g=((g-128)*1.9)+128; g=Math.max(0,Math.min(255,g)); if(g<135)g=0; else if(g>185)g=255; d[i]=d[i+1]=d[i+2]=g; }
   ctx.putImageData(imgData,0,0);
@@ -371,11 +371,19 @@ function payFromMode(pm){
   return 'Espèces (avancé perso)';
 }
 function catFromMode(cat, merchant){
+  const C=(cat||'').toString().toLowerCase();
+  if(/resto|restaur|repas|caf[ée]|brasser/.test(C)) return 'Restaurant / Repas';
+  if(/cours|superm|alimenta|[ée]picerie/.test(C)) return 'Courses / Supermarché';
+  if(/essence|carbur|parking|p[ée]age|station/.test(C)) return 'Essence / Parking';
+  if(/transp|uber|taxi|train/.test(C)) return 'Transport';
+  if(/fournit|mat[ée]riel|[ée]quip/.test(C)) return 'Fourniture / Matériel';
+  if(/travaux|am[ée]nag/.test(C)) return 'Travaux';
   const m=(merchant||'').toLowerCase();
-  if (/lidl|metro|monoprix|franprix|carrefour|auchan|courses/.test(m)) return 'Courses / Supermarché';
+  if (/lidl|metro|monoprix|franprix|carrefour|auchan/.test(m)) return 'Courses / Supermarché';
   if (/total|essence|station|parking|garage|p[ée]age/.test(m)) return 'Essence / Parking';
   if (/uber|taxi|ratp|sncf|navigo/.test(m)) return 'Transport';
   if (/leroy|castorama|brico/.test(m)) return 'Fourniture / Matériel';
+  if (C==='autre') return 'Autre';
   return 'Restaurant / Repas';
 }
 
@@ -479,6 +487,7 @@ function scanMore() {
   document.getElementById('ph').classList.remove('hidden');
   document.getElementById('nextBtn').classList.add('hidden');
   document.getElementById('merchant').value=''; document.getElementById('amount').value=''; document.getElementById('note').value='';
+  document.getElementById('category').selectedIndex=0;
   selectedPay='Espèces (avancé perso)'; renderChips();
   goStep1();
 }
