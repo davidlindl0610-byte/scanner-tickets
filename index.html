@@ -199,7 +199,7 @@ hr.sep { border:none; border-top:1px solid #e5e7eb; margin:16px 0 12px; }
     <div class="bycat hidden" id="byCatBox"><h4>Total par cat&eacute;gorie</h4><div id="byCatList"></div></div>
     <div id="historyList"></div>
     <div class="exportbtns" id="exportBtns" style="margin-top:8px;">
-      <button class="btn btn-success hidden" id="exportAllBtn" onclick="exportAll()">&#11015; Images + JSON</button>
+      <button class="btn btn-success hidden" id="exportAllBtn" onclick="exportAll()">&#11015; Tout (ZIP images+CSV)</button>
       <button class="btn btn-secondary hidden" id="exportCsvBtn" onclick="exportCSV()">&#128202; CSV</button>
     </div>
     <button class="btn btn-secondary hidden" id="clearBtn" onclick="clearAll()" style="margin-top:8px;border-color:#e9a23b;color:#a35b00;">&#128465; Vider la liste (apr&egrave;s export)</button>
@@ -208,6 +208,7 @@ hr.sep { border:none; border-top:1px solid #e5e7eb; margin:16px 0 12px; }
 
 <canvas id="processCanvas" class="processing"></canvas>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 // ===== Config IA =====
 const AI_MODEL = 'claude-haiku-4-5-20251001';
@@ -524,15 +525,33 @@ function updateUI() {
   }
 }
 
-function exportAll() {
+async function exportAll() {
   if (!tickets.length){ alert('Aucun ticket'); return; }
-  tickets.forEach(function(t,i){ setTimeout(function(){ if(t.image){ const a=document.createElement('a'); a.href=t.image; a.download=t.filename+'.jpg'; a.click(); } }, i*500); });
-  setTimeout(function(){
+  if (typeof JSZip === 'undefined'){ alert('Module ZIP non chargé, réessaie dans un instant.'); return; }
+  try {
+    const zip = new JSZip();
+    // CSV
+    const head = ['Date','Commercant','Montant TTC','Mode paiement','A rembourser','Categorie','Note','Fichier'];
+    const rows = tickets.map(t=>[t.date,t.merchant,t.amount.toFixed(2).replace('.',','),t.payment,(t.remboursable?'OUI':'non'),t.category,t.note,t.filename+'.jpg']);
+    const csv = [head].concat(rows).map(r=>r.map(c=>'"'+String(c||'').replace(/"/g,'""')+'"').join(';')).join('\n');
+    zip.file('tickets.csv', '﻿'+csv);
+    // JSON
     const summary = tickets.map(t=>({ commercant:t.merchant, montant_ttc:t.amount, date:t.date, mode_paiement:t.payment, a_rembourser:t.remboursable, categorie:t.category, note:t.note, fichier:t.filename+'.jpg' }));
-    const b = new Blob([JSON.stringify(summary,null,2)],{type:'application/json'});
-    const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='tickets_'+new Date().toISOString().split('T')[0]+'.json'; a.click();
-    alert(tickets.length+' tickets exportés (images + JSON) !');
-  }, tickets.length*500 + 400);
+    zip.file('tickets.json', JSON.stringify(summary,null,2));
+    // images
+    const folder = zip.folder('images');
+    let n=1;
+    for (const t of tickets){ if(t.image){ const b64=t.image.split(',')[1]; const name=((t.filename||('ticket-'+n)).replace(/[\/\\:*?"<>|]/g,'-'))+'.jpg'; folder.file(name, b64, {base64:true}); } n++; }
+    const blob = await zip.generateAsync({type:'blob'});
+    const fname = 'tickets_'+new Date().toISOString().split('T')[0]+'.zip';
+    const file = new File([blob], fname, {type:'application/zip'});
+    if (navigator.canShare && navigator.canShare({files:[file]})) {
+      await navigator.share({ files:[file], title:'Tickets SAS CDR' });
+    } else {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+    }
+  } catch(e){ alert('Export impossible : '+(e.message||e)); }
 }
 
 function exportCSV() {
